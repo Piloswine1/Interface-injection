@@ -11,9 +11,11 @@ const StartFormating = (
   dirpath: string,
   exts: string[],
   maxDepth: number,
+  files: (string|number)[]
 ) => {
+  const match = files.map(e => RegExp(e.toString()))
   const PromiseList: Promise<void>[] = [];
-  for (const file of walkSync(dirpath, { exts, maxDepth })) {
+  for (const file of walkSync(dirpath, { exts, maxDepth, match })) {
     console.log("FileName: " + file.path);
     PromiseList.push(FormatFile(file.path));
   }
@@ -21,7 +23,6 @@ const StartFormating = (
 };
 const FormatFile = async (filename: string) => {
   const encoder = new TextEncoder();
-  // const decoder = new TextDecoder();
   const file = await Deno.open(filename);
   const fileNew = await Deno.open(
     filename.split(".").join("_new."),
@@ -32,7 +33,7 @@ const FormatFile = async (filename: string) => {
   let paren: boolean = false;
 
   for await (const line of readLines(file)) {
-    //in local classes or inlined parentesis it will fuck up... or not
+    //in local classes it will fuck up... or not
     const inc_class = line.includes("class");
     const posBefour = line.indexOf("{");
     let to_print = line;
