@@ -2,30 +2,50 @@
 import { readLines } from "https://deno.land/std@0.74.0/io/mod.ts";
 import { walkSync } from "https://deno.land/std@0.74.0/fs/mod.ts"; //XXX: may be unstable
 
+type AsyncPathWalk = (args: {
+  dirpath: string,
+  exts: string[],
+  maxDepth: number,
+  files: (string|number)[],
+  preemptive: boolean,
+  show: boolean
+}) => Promise<void>;
+
+type AsyncFormatFile = (filename: string, show: boolean) => Promise<void>
+
 const INTERFACE = "IDisposable";
 const INTERFACE_IMPL =
   "public void Dispose() {throw new NotImplementedException();}";
 const NEWLINE = "\r\n";
 
-const StartFormating = (
-  dirpath: string,
-  exts: string[],
-  maxDepth: number,
-  files: (string|number)[]
-) => {
-  const match = files.map(e => RegExp(e.toString()))
+const StartFormating: AsyncPathWalk = async ({
+  dirpath,
+  exts,
+  maxDepth,
+  files,
+  preemptive,
+  show
+}) => {
+  const match = files.length === 0 ? undefined : files.map(e => RegExp(e.toString()))
   const PromiseList: Promise<void>[] = [];
   for (const file of walkSync(dirpath, { exts, maxDepth, match })) {
     console.log("FileName: " + file.path);
-    PromiseList.push(FormatFile(file.path));
+    if (preemptive) {
+      let buf = new Uint8Array(1);
+      await Deno.read(Deno.stdin.rid, buf);
+    }
+    await FormatFile(file.path, show);
   }
-  return PromiseList;
+  Promise.all(PromiseList)
+    .then(() => console.log("formatting ended"))
+    .catch((err) => console.log(err));
 };
-const FormatFile = async (filename: string) => {
+const FormatFile: AsyncFormatFile = async (filename, show) => {
   const encoder = new TextEncoder();
   const file = await Deno.open(filename);
+  const filenameNew = filename.split(".").join("_new.")
   const fileNew = await Deno.open(
-    filename.split(".").join("_new."),
+    filenameNew,
     { write: true, create: true },
   );
 
@@ -65,6 +85,10 @@ const FormatFile = async (filename: string) => {
     }
 
     await fileNew.write(encoder.encode(to_print + NEWLINE));
+  }
+
+  if (show) {
+    await Deno.copy(Deno.openSync(filenameNew), Deno.stdout);
   }
 };
 export { StartFormating };

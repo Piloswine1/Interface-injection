@@ -1,13 +1,10 @@
 import { parse } from "https://deno.land/std@0.74.0/flags/mod.ts";
 import { StartFormating } from "./essentials.ts";
 
-//-p - path
-//-x - extentions
-//-d - maxDepth
 const args = parse(Deno.args, {
-  boolean: ["h"],
+  boolean: ["h", "i", "s"],
   string: ["p", "x"],
-  default: { p: ".", x: ["cs"], d: 1 },
+  default: { p: ".", x: ["cs"], d: 1, i: false, s: false},
 });
 
 if (args.h) {
@@ -16,13 +13,19 @@ if (args.h) {
   console.log(" args:")
   console.log(" -h - to show this help")
   console.log(" -p - to set working dir")
+  console.log(" -s - to show or not formatted files")
+  console.log(" -i - interactive, a.k. will be preemtive (default: true)")
   console.log(" -x - to set filetype to include (default: \"cs\")")
   console.log("   use as -x \"filetype1\" -x \"filetype2\" -x \"filetype3\"")
   console.log(" -d - max depth (default 1)")
   Deno.exit();
 }
-const promisies = StartFormating(args.p, [].concat(args.x), args.d, args._);
 
-Promise.all(promisies)
-  .then(() => console.log("formatting ended"))
-  .catch((err) => console.log(err));
+await StartFormating({
+  dirpath: args.p,
+  exts: [].concat(args.x),
+  maxDepth: args.d,
+  files: args._,
+  preemptive: args.i,
+  show: args.s
+})
