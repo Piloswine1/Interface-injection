@@ -15,6 +15,7 @@ type AsyncPathWalk = (args: {
 type AsyncFormatFile = (filename: string, show: boolean) => Promise<void>;
 
 const S_KEY = 115
+const TAB = "        "
 const INTERFACE = "IDisposable";
 const INTERFACE_IMPL =
   "public void Dispose() {throw new NotImplementedException();}";
@@ -74,33 +75,35 @@ const FormatFile: AsyncFormatFile = async (filename, show) => {
       }
       return "";
     };
-    const format_class = () =>{
-      to_print = to_print.trimEnd();
-      return (!to_print.includes(":"))? ": " :
-             (to_print[to_print.length - 1] !== ",")? ", " :
-             " ";
-    }
+    const format_class = () =>
+      (!to_print.includes(":"))? ": " :
+      (to_print[to_print.length - 1] !== ",")? ", " :
+      " ";
 
+    const comments = cut_custom("//");
     if (to_print.includes("class")) {
-      const comments = cut_custom("//");
       const paren = cut_custom("{");
-      to_print += format_class() + INTERFACE + paren + comments;
+      to_print = to_print.trimEnd();
+      to_print += format_class() + INTERFACE + paren;
       searchParen = true;
     }
 
     if (searchParen) {
       const paren = cut_custom("{");
       if (paren) {
-        to_print += paren + NEWLINE + INTERFACE_IMPL;
+        to_print += paren + NEWLINE + TAB + INTERFACE_IMPL;
         searchParen = false;
       }
     }
 
-    await fileNew.write(encoder.encode(to_print + NEWLINE));
+    await fileNew.write(encoder.encode(to_print + comments + NEWLINE));
   }
 
   if (show) {
-    await Deno.copy(Deno.openSync(filenameNew), Deno.stdout);
+    const newFile = Deno.openSync(filenameNew)
+    await Deno.copy(newFile, Deno.stdout);
+    Deno.close(newFile.rid);
   }
+  Deno.close(file.rid);
 };
 export { StartFormating };
