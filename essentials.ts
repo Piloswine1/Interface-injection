@@ -10,12 +10,25 @@ type AsyncPathWalk = (args: {
   preemptive: boolean;
   show: boolean;
   unixNewline: boolean;
+  fix: boolean;
 }) => Promise<void>;
+
+type OpenFilesRet = {
+  self: Deno.File,
+  write: (str: string) => Promise<number>,
+  rid: number,
+  name: string
+}
+
+interface OpenFilesType {
+  (filename: string): Promise<OpenFilesRet[]>
+} 
 
 type AsyncFormatFile = (filename: string, show: boolean) => Promise<void>;
 
 const S_KEY = 115
 const TAB = "        "
+const USING = "using System;"
 const INTERFACE = "IDisposable";
 const INTERFACE_IMPL =
   "public void Dispose() {throw new NotImplementedException();}";
@@ -30,6 +43,7 @@ const StartFormating: AsyncPathWalk = async ({
   preemptive,
   show,
   unixNewline,
+  fix,
 }) => {
   NEWLINE = (unixNewline) ? "\n" : "\r\n";
   const match = files.length === 0
@@ -44,25 +58,76 @@ const StartFormating: AsyncPathWalk = async ({
       // s and enter to skip
       if (buf[0] === S_KEY) continue
     }
-    await FormatFile(file.path, show);
+    if (fix) {
+      await FixFile(file.path, show);
+    } else {
+      await FormatFile(file.path, show);
+    }
   }
   Promise.all(PromiseList)
     .then(() => console.log("formatting ended"))
     .catch((err) => console.log(err));
 };
-const FormatFile: AsyncFormatFile = async (filename, show) => {
+const OpenFiles: OpenFilesType = async (filename)  => {
+  const makeObjects = (files: [Deno.File, string][]) => files.map(([e, name]) => ({
+    self: e,
+    write: (str: string) => e.write(encoder.encode(str)),
+    rid: e.rid,
+    name
+  }))
+
   const encoder = new TextEncoder();
-  const file = await Deno.open(filename);
-  const filenameNew = filename.split(".").join("_new.");
+  const file = await Deno.open(filename, {read: true, write: false});
+  const newFilename = filename.split(".").join("_new.")
   const fileNew = await Deno.open(
-    filenameNew,
-    { write: true, create: true },
+    newFilename,
+    { write: true, read:true, create: true },
   );
+  return makeObjects([
+    [file, filename], 
+    [fileNew, newFilename]
+  ])
+}
+const FixFile: AsyncFormatFile = async (filename, show) => {
+  const [file, fileNew] = await OpenFiles(filename);
+
+  let isUsingSystem = false;
+  let IDisposableExst = false;
+  // remove so no changing here
+  let shouldRemove = false;
+
+  for await (const line of readLines(file.self)) {
+    if (line.includes(USING)) isUsingSystem = true
+    if (line.includes(INTERFACE)) IDisposableExst = true
+    if (isUsingSystem && IDisposableExst) {
+      console.log("not changing");
+      shouldRemove = true;
+      break;
+    }
+  }
+
+  if (!isUsingSystem && IDisposableExst) {
+    await fileNew.write(USING + NEWLINE);
+    await Deno.seek(file.rid, 0, Deno.SeekMode.Start);
+    await Deno.copy(file.self, fileNew.self);  
+    console.log("fixed");
+  }
+
+  if (show) {
+    await Deno.seek(fileNew.rid, 0, Deno.SeekMode.Start);
+    await Deno.copy(fileNew.self, Deno.stdout);
+    Deno.close(fileNew.rid);
+    if (shouldRemove) Deno.removeSync(fileNew.name);
+  }
+  Deno.close(file.rid);
+}
+const FormatFile: AsyncFormatFile = async (filename, show) => {
+  const [file, fileNew] = await OpenFiles(filename);
 
   //should consider parentesis
   let searchParen: boolean = false;
 
-  for await (const line of readLines(file)) {
+  for await (const line of readLines(file.self)) {
     //in local classes it will fuck up... or not
     let to_print = line;
     //cut comments from to_print and return  it
@@ -96,13 +161,13 @@ const FormatFile: AsyncFormatFile = async (filename, show) => {
       }
     }
 
-    await fileNew.write(encoder.encode(to_print + comments + NEWLINE));
+    await fileNew.write(to_print + comments + NEWLINE);
   }
 
   if (show) {
-    const newFile = Deno.openSync(filenameNew)
-    await Deno.copy(newFile, Deno.stdout);
-    Deno.close(newFile.rid);
+    await Deno.seek(fileNew.rid, 0, Deno.SeekMode.Start);
+    await Deno.copy(fileNew.self, Deno.stdout);
+    Deno.close(fileNew.rid);
   }
   Deno.close(file.rid);
 };

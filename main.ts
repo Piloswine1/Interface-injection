@@ -2,9 +2,9 @@ import { parse } from "https://deno.land/std@0.74.0/flags/mod.ts";
 import { StartFormating } from "./essentials.ts";
 
 const args = parse(Deno.args, {
-  boolean: ["h", "i", "s", "l"],
+  boolean: ["h", "i", "s", "l", "fix"],
   string: ["p", "x"],
-  default: { p: ".", x: ["cs"], d: 1, i: false, s: false, l: false },
+  default: { p: ".", x: ["cs"], d: 1, i: false, s: false, l: false, fix: false },
 });
 
 if (args.h) {
@@ -30,4 +30,5 @@ await StartFormating({
   preemptive: args.i,
   show: args.s,
   unixNewline: args.l,
+  fix: args.fix
 });
