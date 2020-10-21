@@ -14,9 +14,11 @@ type AsyncPathWalk = (args: {
 
 type AsyncFormatFile = (filename: string, show: boolean) => Promise<void>;
 
+const S_KEY = 115
 const INTERFACE = "IDisposable";
 const INTERFACE_IMPL =
   "public void Dispose() {throw new NotImplementedException();}";
+
 let NEWLINE: "\n" | "\r\n" = "\r\n";
 
 const StartFormating: AsyncPathWalk = async ({
@@ -36,8 +38,10 @@ const StartFormating: AsyncPathWalk = async ({
   for (const file of walkSync(dirpath, { exts, maxDepth, match })) {
     console.log("FileName: " + file.path);
     if (preemptive) {
-      let buf = new Uint8Array(1);
+      let buf = new Uint8Array(2);
       await Deno.read(Deno.stdin.rid, buf);
+      // s and enter to skip
+      if (buf[0] === S_KEY) continue
     }
     await FormatFile(file.path, show);
   }
@@ -62,7 +66,6 @@ const FormatFile: AsyncFormatFile = async (filename, show) => {
     let to_print = line;
     //cut comments from to_print and return  it
     const cut_custom = (delim: string) => {
-      // console.log(to_print)
       const pos = to_print.indexOf(delim);
       if (pos !== -1) {
         const tail = to_print.substr(pos);
@@ -88,7 +91,6 @@ const FormatFile: AsyncFormatFile = async (filename, show) => {
     if (searchParen) {
       const paren = cut_custom("{");
       if (paren) {
-        // console.log(paren)
         to_print += paren + NEWLINE + INTERFACE_IMPL;
         searchParen = false;
       }
