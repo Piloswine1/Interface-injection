@@ -100,7 +100,6 @@ const FixFile: AsyncFormatFile = async (filename, show) => {
     if (line.includes(USING)) isUsingSystem = true
     if (line.includes(INTERFACE)) IDisposableExst = true
     if (isUsingSystem && IDisposableExst) {
-      console.log("not changing");
       shouldRemove = true;
       break;
     }
@@ -111,6 +110,8 @@ const FixFile: AsyncFormatFile = async (filename, show) => {
     await Deno.seek(file.rid, 0, Deno.SeekMode.Start);
     await Deno.copy(file.self, fileNew.self);  
     console.log("fixed");
+  } else {
+    console.log("not changing"); 
   }
 
   if (show) {

@@ -8,25 +8,36 @@
 !_TAG_PROGRAM_VERSION	0.0.0	/a3c87ab5/
 AsyncFormatFile	essentials.ts	/^type AsyncFormatFile = (filename: string, show: boolean) => Promise<void>;$/;"	a
 AsyncPathWalk	essentials.ts	/^type AsyncPathWalk = (args: {$/;"	a
+FixFile	essentials.ts	/^const FixFile: AsyncFormatFile = async (filename, show) => {$/;"	C
 FormatFile	essentials.ts	/^const FormatFile: AsyncFormatFile = async (filename, show) => {$/;"	C
+IDisposableExst	essentials.ts	/^  let IDisposableExst = false;$/;"	v
 INTERFACE	essentials.ts	/^const INTERFACE = "IDisposable";$/;"	C
 INTERFACE_IMPL	essentials.ts	/^const INTERFACE_IMPL =$/;"	C
 MyClass	test/test.ts	/^class MyClass$/;"	c
 MyClass	test/test3.ts	/^class MyClass \/\/some comment$/;"	c
+MyClass	test/test4.ts	/^class MyClass \/\/some comment$/;"	c
 MyClass2	test/test.ts	/^class MyClass2: Int16Array, I2, I3$/;"	c
 MyClass2	test/test3.ts	/^class MyClass2: Int16Array, I2, I3  \/\/some comment$/;"	c
+MyClass2	test/test4.ts	/^class MyClass2: Int16Array, I2, I3  \/\/some comment$/;"	c
 MyClass3	test/test.ts	/^class MyClass3: Int16Array, I2, I3$/;"	c
 MyClass4	test/test2.ts	/^class MyClass4: Int16Array, I2, I3,$/;"	c
 MyClass4	test/test3.ts	/^class MyClass4: Int16Array, I2, I3,  \/\/some comment$/;"	c
+MyClass4	test/test4.ts	/^class MyClass4: Int16Array, I2, I3,  \/\/some comment$/;"	c
 MyClass5	test/test2.ts	/^class MyClass5: Int16Array, I2, I3{$/;"	c
 MyClass5	test/test3.ts	/^class MyClass5: Int16Array, I2, I3{   \/\/some comment$/;"	c
+MyClass5	test/test4.ts	/^class MyClass5: Int16Array, I2, I3{   \/\/some comment$/;"	c
 MyClass6	test/test2.ts	/^class MyClass6{$/;"	c
 MyClass6	test/test3.ts	/^class MyClass6{     \/\/some comment$/;"	c
+MyClass6	test/test4.ts	/^class MyClass6{     \/\/some comment$/;"	c
 NEWLINE	essentials.ts	/^let NEWLINE: "\\n" | "\\r\\n" = "\\r\\n";$/;"	v
+OpenFiles	essentials.ts	/^const OpenFiles: OpenFilesType = async (filename)  => {$/;"	C
+OpenFilesRet	essentials.ts	/^type OpenFilesRet = {$/;"	a
+OpenFilesType	essentials.ts	/^interface OpenFilesType {$/;"	i
 PromiseList	essentials.ts	/^  const PromiseList: Promise<void>[] = [];$/;"	C
 S_KEY	essentials.ts	/^const S_KEY = 115$/;"	C
 StartFormating	essentials.ts	/^const StartFormating: AsyncPathWalk = async ({$/;"	C
 TAB	essentials.ts	/^const TAB = "        "$/;"	C
+USING	essentials.ts	/^const USING = "using System;"$/;"	C
 args	main.ts	/^const args = parse(Deno.args, {$/;"	C
 buf	essentials.ts	/^      let buf = new Uint8Array(2);$/;"	v
 comments	essentials.ts	/^    const comments = cut_custom("\/\/");$/;"	C
@@ -34,16 +45,20 @@ cut_custom	essentials.ts	/^    const cut_custom = (delim: string) => {$/;"	C
 deno.enable	.vscode/settings.json	/^    "deno.enable": true,$/;"	b
 deno.import_intellisense_origins	.vscode/settings.json	/^    "deno.import_intellisense_origins": {$/;"	o
 encoder	essentials.ts	/^  const encoder = new TextEncoder();$/;"	C
-file	essentials.ts	/^  const file = await Deno.open(filename);$/;"	C
+file	essentials.ts	/^  const [file, fileNew] = await OpenFiles(filename);$/;"	C
+file	essentials.ts	/^  const file = await Deno.open(filename, {read: true, write: false});$/;"	C
 file	essentials.ts	/^  for (const file of walkSync(dirpath, { exts, maxDepth, match })) {$/;"	C
+fileNew	essentials.ts	/^  const [file, fileNew] = await OpenFiles(filename);$/;"	C
 fileNew	essentials.ts	/^  const fileNew = await Deno.open($/;"	C
-filenameNew	essentials.ts	/^  const filenameNew = filename.split(".").join("_new.");$/;"	C
 format_class	essentials.ts	/^    const format_class = () =>$/;"	C
 https://deno.land	.vscode/settings.json	/^        "https:\/\/deno.land": true$/;"	b	object:deno.import_intellisense_origins
-line	essentials.ts	/^  for await (const line of readLines(file)) {$/;"	C
+isUsingSystem	essentials.ts	/^  let isUsingSystem = false;$/;"	v
+line	essentials.ts	/^  for await (const line of readLines(file.self)) {$/;"	C
+makeObjects	essentials.ts	/^  const makeObjects = (files: [Deno.File, string][]) => files.map(([e, name]) => ({$/;"	C
 match	essentials.ts	/^  const match = files.length === 0$/;"	C
-newFile	essentials.ts	/^    const newFile = Deno.openSync(filenameNew)$/;"	C
+newFilename	essentials.ts	/^  const newFilename = filename.split(".").join("_new.")$/;"	C
 paren	essentials.ts	/^      const paren = cut_custom("{");$/;"	C
 searchParen	essentials.ts	/^  let searchParen: boolean = false;$/;"	v
+shouldRemove	essentials.ts	/^  let shouldRemove = false;$/;"	v
 tail	essentials.ts	/^        const tail = to_print.substr(pos);$/;"	C
 to_print	essentials.ts	/^    let to_print = line;$/;"	v
