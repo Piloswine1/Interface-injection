@@ -1,0 +1,40 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_OUTPUT_FILESEP	slash	/slash or backslash/
+!_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	0.0.0	/a3c87ab5/
+AsyncFormatFile	essentials.ts	/^type AsyncFormatFile = (filename: string, show: boolean) => Promise<void>$/;"	a
+AsyncPathWalk	essentials.ts	/^type AsyncPathWalk = (args: {$/;"	a
+FormatFile	essentials.ts	/^const FormatFile: AsyncFormatFile = async (filename, show) => {$/;"	C
+INTERFACE	essentials.ts	/^const INTERFACE = "IDisposable";$/;"	C
+INTERFACE_IMPL	essentials.ts	/^const INTERFACE_IMPL =$/;"	C
+MyClass	test/test.ts	/^class MyClass $/;"	c
+MyClass2	test/test.ts	/^class MyClass2: Int16Array, I2, I3$/;"	c
+MyClass3	test/test.ts	/^class MyClass3: Int16Array, I2, I3$/;"	c
+MyClass4	test/test.ts	/^class MyClass4: Int16Array, I2, I3,$/;"	c
+MyClass5	test/test.ts	/^class MyClass5: Int16Array, I2, I3{$/;"	c
+MyClass6	test/test.ts	/^class MyClass6{$/;"	c
+NEWLINE	essentials.ts	/^const NEWLINE = "\\r\\n";$/;"	C
+PromiseList	essentials.ts	/^  const PromiseList: Promise<void>[] = [];$/;"	C
+StartFormating	essentials.ts	/^const StartFormating: AsyncPathWalk = async ({$/;"	C
+args	main.ts	/^const args = parse(Deno.args, {$/;"	C
+buf	essentials.ts	/^      let buf = new Uint8Array(1);$/;"	v
+cut_custom	essentials.ts	/^    const cut_custom = (delim: string) => {$/;"	C
+deno.enable	.vscode/settings.json	/^    "deno.enable": true,$/;"	b
+deno.import_intellisense_origins	.vscode/settings.json	/^    "deno.import_intellisense_origins": {$/;"	o
+encoder	essentials.ts	/^  const encoder = new TextEncoder();$/;"	C
+file	essentials.ts	/^  const file = await Deno.open(filename);$/;"	C
+file	essentials.ts	/^  for (const file of walkSync(dirpath, { exts, maxDepth, match })) {$/;"	C
+fileNew	essentials.ts	/^  const fileNew = await Deno.open($/;"	C
+filenameNew	essentials.ts	/^  const filenameNew = filename.split(".").join("_new.")$/;"	C
+format_class	essentials.ts	/^    const format_class = () =>$/;"	C
+https://deno.land	.vscode/settings.json	/^        "https:\/\/deno.land": true$/;"	b	object:deno.import_intellisense_origins
+inc_class	essentials.ts	/^    const inc_class = line.includes("class");$/;"	C
+line	essentials.ts	/^  for await (const line of readLines(file)) {$/;"	C
+match	essentials.ts	/^  const match = files.length === 0 ? undefined : files.map(e => RegExp(e.toString()))$/;"	C
+paren	essentials.ts	/^  let paren: boolean = false;$/;"	v
+to_print	essentials.ts	/^    let to_print = line;$/;"	v
+undefined	essentials.ts	/^  const match = files.length === 0 ? undefined : files.map(e => RegExp(e.toString()))$/;"	C
