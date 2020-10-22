@@ -13,15 +13,17 @@ type AsyncPathWalk = (args: {
   fix: boolean;
 }) => Promise<void>;
 
-type OpenFilesRet = {
+interface OpenFilesRet {
   self: Deno.File,
   write: (str: string) => Promise<number>,
-  rid: number,
-  name: string
+  rid: number
 }
 
 interface OpenFilesType {
-  (filename: string): Promise<OpenFilesRet[]>
+  (filename: string): Promise<[
+    OpenFilesRet[], 
+    (r: boolean)=>void
+  ]>
 } 
 
 type AsyncFormatFile = (filename: string, show: boolean) => Promise<void>;
@@ -66,14 +68,13 @@ const StartFormating: AsyncPathWalk = async ({
   }
   Promise.all(PromiseList)
     .then(() => console.log("formatting ended"))
-    .catch((err) => console.log(err));
+    .catch((err) => console.log("error occured" + err));
 };
 const OpenFiles: OpenFilesType = async (filename)  => {
-  const makeObjects = (files: [Deno.File, string][]) => files.map(([e, name]) => ({
+  const makeObjects = (files: Deno.File[]) => files.map(e => ({
     self: e,
     write: (str: string) => e.write(encoder.encode(str)),
-    rid: e.rid,
-    name
+    rid: e.rid
   }))
 
   const encoder = new TextEncoder();
@@ -83,47 +84,48 @@ const OpenFiles: OpenFilesType = async (filename)  => {
     newFilename,
     { write: true, read:true, create: true },
   );
-  return makeObjects([
-    [file, filename], 
-    [fileNew, newFilename]
-  ])
-}
-const FixFile: AsyncFormatFile = async (filename, show) => {
-  const [file, fileNew] = await OpenFiles(filename);
 
-  let isUsingSystem = false;
-  let IDisposableExst = false;
+  const cleanUp = (r: boolean = false) => {
+    Deno.close(file.rid);
+    Deno.close(fileNew.rid);
+    if (r) Deno.removeSync(newFilename);
+  }
+
+  const files = makeObjects([file,fileNew])
+  return [files, cleanUp]
+}
+
+const copyFileTo = async (from: OpenFilesRet, to: Deno.Writer) => {
+  await Deno.seek(from.rid, 0, Deno.SeekMode.Start);
+  await Deno.copy(from.self, to);  
+}
+
+const FixFile: AsyncFormatFile = async (filename, show) => {
+  const [[file, fileNew], cleanUp] = await OpenFiles(filename);
   // remove so no changing here
-  let shouldRemove = false;
+  let changing = false;
 
   for await (const line of readLines(file.self)) {
-    if (line.includes(USING)) isUsingSystem = true
-    if (line.includes(INTERFACE)) IDisposableExst = true
-    if (isUsingSystem && IDisposableExst) {
-      shouldRemove = true;
+    if (line.includes(USING)) break;
+    if (line.includes(INTERFACE)) {
+      changing = true;
       break;
     }
   }
 
-  if (!isUsingSystem && IDisposableExst) {
+  if (changing) {
     await fileNew.write(USING + NEWLINE);
-    await Deno.seek(file.rid, 0, Deno.SeekMode.Start);
-    await Deno.copy(file.self, fileNew.self);  
+    await copyFileTo(file, fileNew.self);
+    if (show) await copyFileTo(fileNew, Deno.stdout);
     console.log("fixed");
   } else {
-    console.log("not changing"); 
+    console.log("not changing");
   }
-
-  if (show) {
-    await Deno.seek(fileNew.rid, 0, Deno.SeekMode.Start);
-    await Deno.copy(fileNew.self, Deno.stdout);
-    Deno.close(fileNew.rid);
-    if (shouldRemove) Deno.removeSync(fileNew.name);
-  }
-  Deno.close(file.rid);
+  cleanUp(!changing);
 }
+
 const FormatFile: AsyncFormatFile = async (filename, show) => {
-  const [file, fileNew] = await OpenFiles(filename);
+  const [[file, fileNew], cleanUp] = await OpenFiles(filename);
 
   //should consider parentesis
   let searchParen: boolean = false;
@@ -147,7 +149,7 @@ const FormatFile: AsyncFormatFile = async (filename, show) => {
       " ";
 
     const comments = cut_custom("//");
-    if (to_print.includes("class")) {
+    if (to_print.includes("class ") && !to_print.includes(INTERFACE)) {
       const paren = cut_custom("{");
       to_print = to_print.trimEnd();
       to_print += format_class() + INTERFACE + paren;
@@ -168,8 +170,9 @@ const FormatFile: AsyncFormatFile = async (filename, show) => {
   if (show) {
     await Deno.seek(fileNew.rid, 0, Deno.SeekMode.Start);
     await Deno.copy(fileNew.self, Deno.stdout);
-    Deno.close(fileNew.rid);
   }
-  Deno.close(file.rid);
+
+  cleanUp(false);
 };
+
 export { StartFormating };

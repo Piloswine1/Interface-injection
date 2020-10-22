@@ -10,15 +10,17 @@ const args = parse(Deno.args, {
 if (args.h) {
   console.log("use inj <args> <files_to_include>");
   console.log(" if no files setted, considering all");
-  console.log(" args:");
-  console.log(" -l - unix-type newline");
-  console.log(" -h - to show this help");
-  console.log(" -p - to set working dir");
-  console.log(" -s - to show or not formatted files");
-  console.log(" -i - interactive, a.k. will be preemtive (default: true)");
-  console.log(' -x - to set filetype to include (default: "cs")');
-  console.log('   use as -x "filetype1" -x "filetype2" -x "filetype3"');
-  console.log(" -d - max depth (default 1)");
+  console.log(" short args:");
+  console.log("   -l    - unix-type newline");
+  console.log("   -h    - to show this help");
+  console.log("   -p    - to set working dir");
+  console.log("   -s    - to show or not formatted files");
+  console.log("   -i    - interactive, a.k. will be preemtive (default: true)");
+  console.log('   -x    - to set filetype to include (default: "cs")');
+  console.log('       use as -x "filetype1" -x "filetype2" -x "filetype3"');
+  console.log("   -d    - max depth (default 1)");
+  console.log(" long args:");
+  console.log("   --fix - to fix headers");
   Deno.exit();
 }
 
