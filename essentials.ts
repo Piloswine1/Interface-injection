@@ -167,10 +167,7 @@ const FormatFile: AsyncFormatFile = async (filename, show) => {
     await fileNew.write(to_print + comments + NEWLINE);
   }
 
-  if (show) {
-    await Deno.seek(fileNew.rid, 0, Deno.SeekMode.Start);
-    await Deno.copy(fileNew.self, Deno.stdout);
-  }
+  if (show) await copyFileTo(fileNew, Deno.stdout);
 
   cleanUp(false);
 };
