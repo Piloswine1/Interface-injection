@@ -30,6 +30,8 @@ type AsyncFormatFile = (filename: string, show: boolean) => Promise<void>;
 
 const S_KEY = 115
 const TAB = "        "
+const CLASS = "class "
+const ABSTRACT = "abstract "
 const USING = "using System;"
 const INTERFACE = "IDisposable";
 const INTERFACE_IMPL =
@@ -149,7 +151,9 @@ const FormatFile: AsyncFormatFile = async (filename, show) => {
       " ";
 
     const comments = cut_custom("//");
-    if (to_print.includes("class ") && !to_print.includes(INTERFACE)) {
+    if (to_print.includes(CLASS)     && 
+        !to_print.includes(INTERFACE)   &&
+        !to_print.includes(ABSTRACT)) {
       const paren = cut_custom("{");
       to_print = to_print.trimEnd();
       to_print += format_class() + INTERFACE + paren;
