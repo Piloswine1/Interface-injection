@@ -29,7 +29,8 @@ interface OpenFilesType {
 type AsyncFormatFile = (filename: string, show: boolean) => Promise<void>;
 
 const S_KEY = 115
-const TAB = "        "
+const TAB1 = "\t"
+const TAB2 = "\t\t"
 const CLASS = "class "
 const ABSTRACT = "abstract "
 const USING = "using System;"
@@ -130,11 +131,11 @@ const FormatFile: AsyncFormatFile = async (filename, show) => {
   const [[file, fileNew], cleanUp] = await OpenFiles(filename);
 
   //should consider parentesis
-  let searchParen: boolean = false;
+  let openedParent: number | null = null;
 
   for await (const line of readLines(file.self)) {
     //in local classes it will fuck up... or not
-    let to_print = line;
+    let to_print = line.trimEnd();
     //cut comments from to_print and return  it
     const cut_custom = (delim: string) => {
       const pos = to_print.indexOf(delim);
@@ -149,22 +150,36 @@ const FormatFile: AsyncFormatFile = async (filename, show) => {
       (!to_print.includes(":"))? ": " :
       (to_print[to_print.length - 1] !== ",")? ", " :
       " ";
+    const count_parent = () => {
+      const opened = to_print.match("{");
+      const closed = to_print.match("}");
+      const num = (opened?.length ?? 0) - (closed?.length ?? 0)
+      return {
+        opened: !!opened,
+        closed: !!closed,
+        num
+      }
+    }
 
     const comments = cut_custom("//");
-    if (to_print.includes(CLASS)     && 
-        !to_print.includes(INTERFACE)   &&
+    if (to_print.includes(CLASS)      && 
+        !to_print.includes(INTERFACE) &&
         !to_print.includes(ABSTRACT)) {
       const paren = cut_custom("{");
       to_print = to_print.trimEnd();
       to_print += format_class() + INTERFACE + paren;
-      searchParen = true;
+      openedParent = 0;
     }
 
-    if (searchParen) {
-      const paren = cut_custom("{");
-      if (paren) {
-        to_print += paren + NEWLINE + TAB + INTERFACE_IMPL;
-        searchParen = false;
+    if (openedParent !== null) {
+      const {num, closed} = count_parent();
+      openedParent += num
+      if (closed && openedParent === 0) {
+        const paren = cut_custom("}");
+        to_print = to_print.trimEnd();
+        to_print += NEWLINE + TAB2 + INTERFACE_IMPL + 
+                    NEWLINE + TAB1 + paren;
+        openedParent = null;
       }
     }
 
