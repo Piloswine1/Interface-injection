@@ -132,6 +132,7 @@ const FormatFile: AsyncFormatFile = async (filename, show) => {
 
   //should consider parentesis
   let openedParent: number | null = null;
+  let firtstLine = true;
 
   for await (const line of readLines(file.self)) {
     //in local classes it will fuck up... or not
@@ -183,7 +184,13 @@ const FormatFile: AsyncFormatFile = async (filename, show) => {
       }
     }
 
-    await fileNew.write(to_print + comments + NEWLINE);
+    if (firtstLine) {
+      to_print = to_print + comments;
+      firtstLine = false;
+    } else {
+      to_print = NEWLINE + to_print + comments;
+    }
+    await fileNew.write(to_print);
   }
 
   if (show) await copyFileTo(fileNew, Deno.stdout);
