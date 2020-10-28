@@ -1,6 +1,7 @@
 // import * as log from "https://deno.land/std@0.74.0/log/mod.ts"
 import { readLines } from "https://deno.land/std@0.74.0/io/mod.ts";
 import { walkSync } from "https://deno.land/std@0.74.0/fs/mod.ts"; //XXX: may be unstable
+import { range } from "https://unpkg.com/@newdash/newdash-deno/range.ts"
 
 type AsyncPathWalk = (args: {
   dirpath: string;
@@ -28,17 +29,24 @@ interface OpenFilesType {
 
 type AsyncFormatFile = (filename: string, show: boolean) => Promise<void>;
 
+let NEWLINE: "\n" | "\r\n" = "\r\n";
+
 const S_KEY = 115
-const TAB1 = "\t"
-const TAB2 = "\t\t"
+let _TAB = ""
+const TAB = (n: number) => _TAB.padEnd(n, "\t")
 const CLASS = "class "
 const ABSTRACT = "abstract "
 const USING = "using System;"
 const INTERFACE = "IDisposable";
-const INTERFACE_IMPL =
-  "public void Dispose() {throw new NotImplementedException();}";
+const INTERFACE_IMPL = (n: number = 0) =>
+  TAB(1+n) + "public void Dispose()" +
+  NEWLINE + TAB(1+n) + "{" +
+  NEWLINE + TAB(2+n) + "throw new NotImplementedException();" +
+  NEWLINE + TAB(1+n) + "}";
+// const INTERFACE_IMPL =
+// "public void Dispose(){throw new NotImplementedException();" +
+//  NEWLINE + TAB(2) + "}";
 
-let NEWLINE: "\n" | "\r\n" = "\r\n";
 
 const StartFormating: AsyncPathWalk = async ({
   dirpath,
@@ -127,6 +135,31 @@ const FixFile: AsyncFormatFile = async (filename, show) => {
   cleanUp(!changing);
 }
 
+const FixUsing = async (file: OpenFilesRet) => {
+  const pos = await Deno.seek(file.rid, 0, Deno.SeekMode.Current);
+  await Deno.seek(file.rid, 0, Deno.SeekMode.Start);
+
+  let changing = false;
+
+  for await (const line of readLines(file.self)) {
+    if (line.includes(USING)) break;
+    if (line.includes(INTERFACE)) {
+      changing = true;
+      break;
+    }
+  }
+
+  if (changing) {
+    await Deno.seek(file.rid, 0, Deno.SeekMode.Start);
+    await file.write(USING + NEWLINE);
+    console.log("fixed");
+  } else {
+    console.log("not changing");
+  }
+
+  await Deno.seek(file.rid, pos, Deno.SeekMode.Start);
+}
+
 const FormatFile: AsyncFormatFile = async (filename, show) => {
   const [[file, fileNew], cleanUp] = await OpenFiles(filename);
 
@@ -147,39 +180,56 @@ const FormatFile: AsyncFormatFile = async (filename, show) => {
       }
       return "";
     };
-    const format_class = () =>
-      (!to_print.includes(":"))? ": " :
-      (to_print[to_print.length - 1] !== ",")? ", " :
-      " ";
+    const format_class = () => {
+      to_print = to_print.trimEnd();
+      // console.log(to_print);
+      return ({
+        isDotted: to_print.includes(":"),
+        isComma: to_print[to_print.length - 1] === ","
+      })
+    }
     const count_parent = () => {
       const opened = to_print.match("{");
       const closed = to_print.match("}");
       const num = (opened?.length ?? 0) - (closed?.length ?? 0)
       return {
-        opened: !!opened,
-        closed: !!closed,
+        opened: opened?.length,
+        closed: closed?.length,
         num
       }
     }
+
+    const {num, opened, closed} = count_parent();
+
+    if (opened && opened !== 0) range(opened).forEach(_ => _TAB += "\t");
+    if (closed && closed !== 0) _TAB = _TAB.substr(0, _TAB.length - closed);
+    // console.log({_TAB, num, opened, closed, openedParent});
 
     const comments = cut_custom("//");
     if (to_print.includes(CLASS)      && 
         !to_print.includes(INTERFACE) &&
         !to_print.includes(ABSTRACT)) {
+      
       const paren = cut_custom("{");
-      to_print = to_print.trimEnd();
-      to_print += format_class() + INTERFACE + paren;
+      const {isComma, isDotted} = format_class();
+      if (!isDotted) {
+        to_print += ":";
+      } else if (!isComma) {
+        to_print += ",";
+      }
+      to_print += " " + INTERFACE;
+      if (isComma) to_print += ","
+      to_print += paren;
       openedParent = 0;
     }
 
     if (openedParent !== null) {
-      const {num, closed} = count_parent();
       openedParent += num
       if (closed && openedParent === 0) {
         const paren = cut_custom("}");
         to_print = to_print.trimEnd();
-        to_print += NEWLINE + TAB2 + INTERFACE_IMPL + 
-                    NEWLINE + TAB1 + paren;
+        to_print += NEWLINE + INTERFACE_IMPL((paren)?1:0) + 
+                    NEWLINE + _TAB + paren;
         openedParent = null;
       }
     }
@@ -195,6 +245,7 @@ const FormatFile: AsyncFormatFile = async (filename, show) => {
 
   if (show) await copyFileTo(fileNew, Deno.stdout);
 
+  await FixUsing(fileNew);
   cleanUp(false);
 };
 
