@@ -75,7 +75,6 @@ const StartFormating: AsyncPathWalk = async ({
   const match = files.length === 0
     ? undefined
     : files.map((e) => RegExp(e.toString()));
-  const PromiseList: Promise<void>[] = [];
   for (const file of walkSync(dirpath, { exts, maxDepth, match })) {
     console.log("FileName: " + file.path);
     if (preemptive) {
@@ -84,15 +83,13 @@ const StartFormating: AsyncPathWalk = async ({
       // s and enter to skip
       if (buf[0] === S_KEY) continue
     }
+    _TAB = ""
     if (fix) {
       await FixFile(file.path, show);
     } else {
       await FormatFile(file.path, show);
     }
   }
-  Promise.all(PromiseList)
-    .then(() => console.log("formatting ended"))
-    .catch((err) => console.log("error occured" + err));
 };
 const OpenFiles: OpenFilesType = async (filename)  => {
   const makeObjects = (files: Deno.File[]) => files.map(e => ({
