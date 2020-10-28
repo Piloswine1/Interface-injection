@@ -1,7 +1,8 @@
 // import * as log from "https://deno.land/std@0.74.0/log/mod.ts"
-import { readLines } from "https://deno.land/std@0.74.0/io/mod.ts";
+import { readLines, StringWriter, StringReader, BufReader } from "https://deno.land/std@0.74.0/io/mod.ts";
 import { walkSync } from "https://deno.land/std@0.74.0/fs/mod.ts"; //XXX: may be unstable
-import { range } from "https://unpkg.com/@newdash/newdash-deno/range.ts"
+import { range } from "https://unpkg.com/@newdash/newdash-deno/range.ts";
+import { equal } from "https://deno.land/std@0.75.0/bytes/mod.ts";
 
 type AsyncPathWalk = (args: {
   dirpath: string;
@@ -29,23 +30,35 @@ interface OpenFilesType {
 
 type AsyncFormatFile = (filename: string, show: boolean) => Promise<void>;
 
-let NEWLINE: "\n" | "\r\n" = "\r\n";
 
+const encoder = new TextEncoder();
+
+let NEWLINE: "\n" | "\r\n" = "\r\n";
+let _TAB = "";
+
+const BOM = encoder.encode("\u{feff}");
 const S_KEY = 115
-let _TAB = ""
-const TAB = (n: number) => _TAB.padEnd(n, "\t")
+const TAB = (n: number) => {
+  let ret = _TAB;
+  range(n).forEach(_=> ret += "\t");
+  return ret;
+}
 const CLASS = "class "
 const ABSTRACT = "abstract "
-const USING = "using System;"
+const USING ="using System;" //utf 8 - BOM
 const INTERFACE = "IDisposable";
-const INTERFACE_IMPL = (n: number = 0) =>
-  TAB(1+n) + "public void Dispose()" +
-  NEWLINE + TAB(1+n) + "{" +
-  NEWLINE + TAB(2+n) + "throw new NotImplementedException();" +
-  NEWLINE + TAB(1+n) + "}";
+const INTERFACE_IMPL = (n: number = 0) => {
+  const TAB1 = TAB(n)
+  const TAB2 = TAB1 + "\t"
+  return TAB1 + "public void Dispose()" +
+    NEWLINE + TAB1 + "{" +
+    NEWLINE + TAB2 + "throw new NotImplementedException();" +
+    NEWLINE + TAB1 + "}";
+}
 // const INTERFACE_IMPL =
 // "public void Dispose(){throw new NotImplementedException();" +
 //  NEWLINE + TAB(2) + "}";
+
 
 
 const StartFormating: AsyncPathWalk = async ({
@@ -88,7 +101,6 @@ const OpenFiles: OpenFilesType = async (filename)  => {
     rid: e.rid
   }))
 
-  const encoder = new TextEncoder();
   const file = await Deno.open(filename, {read: true, write: false});
   const newFilename = filename.split(".").join("_new.")
   const fileNew = await Deno.open(
@@ -111,30 +123,18 @@ const copyFileTo = async (from: OpenFilesRet, to: Deno.Writer) => {
   await Deno.copy(from.self, to);  
 }
 
+/**
+ * @deprecated
+ * @param filename 
+ * @param show 
+ */
 const FixFile: AsyncFormatFile = async (filename, show) => {
-  const [[file, fileNew], cleanUp] = await OpenFiles(filename);
-  // remove so no changing here
-  let changing = false;
-
-  for await (const line of readLines(file.self)) {
-    if (line.includes(USING)) break;
-    if (line.includes(INTERFACE)) {
-      changing = true;
-      break;
-    }
-  }
-
-  if (changing) {
-    await fileNew.write(USING + NEWLINE);
-    await copyFileTo(file, fileNew.self);
-    if (show) await copyFileTo(fileNew, Deno.stdout);
-    console.log("fixed");
-  } else {
-    console.log("not changing");
-  }
-  cleanUp(!changing);
+  throw Error("deprecated");
 }
 
+/**
+ * @param file - file to fix
+ */
 const FixUsing = async (file: OpenFilesRet) => {
   const pos = await Deno.seek(file.rid, 0, Deno.SeekMode.Current);
   await Deno.seek(file.rid, 0, Deno.SeekMode.Start);
@@ -151,7 +151,20 @@ const FixUsing = async (file: OpenFilesRet) => {
 
   if (changing) {
     await Deno.seek(file.rid, 0, Deno.SeekMode.Start);
+    const buf = new StringWriter();
+
+    const to_BOM = new Uint8Array(3)
+    await file.self.read(to_BOM);
+    if (!equal(to_BOM, BOM))
+      await Deno.seek(file.rid, 0, Deno.SeekMode.Start);
+
+    await Deno.copy(file.self, buf);
+    const buf_r = new StringReader(buf.toString())
+    await Deno.seek(file.rid, 0, Deno.SeekMode.Start);
+    await file.self.write(BOM);
     await file.write(USING + NEWLINE);
+    await Deno.copy(buf_r, file.self);
+
     console.log("fixed");
   } else {
     console.log("not changing");

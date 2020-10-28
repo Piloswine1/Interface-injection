@@ -2,6 +2,8 @@
     "scripts": {
         "test": "deno run --allow-all --unstable main.ts -p ./test",
         "test6": "deno run --allow-all --unstable main.ts -p ./test test6",
+        "test5": "deno run --allow-all --unstable main.ts -p ./test test5",
+        "test7": "deno run --allow-all --unstable main.ts -p ./test test7",
         "clear": "rm ./test/*_new.*"
     }
 }
